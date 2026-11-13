@@ -329,7 +329,7 @@ function DateStrip({ days, streak }: { days: Day[]; streak: Streak }) {
         <div
           aria-hidden
           className="tape tape-press absolute top-[38%] h-[30%]"
-          style={{ left: `calc(${(firstIn / n) * 100}% + 4px)`, width: `calc(${(streak.length / n) * 100}% - 8px)` }}
+          style={{ left: `${(firstIn / n) * 100}%`, width: `${(streak.length / n) * 100}%` }}
         />
         <div className="relative flex">
           {cells.map((d) => {
