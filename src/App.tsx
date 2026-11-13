@@ -315,6 +315,20 @@ function dayColor(d: Day) {
   return 'text-ink'
 }
 
+function stripLabel(d: Day, isLeave: boolean, short: boolean) {
+  if (isLeave) return <b className="text-ink">연차</b>
+  const h = d.holiday
+  if (!h) return ''
+  if (!short) return h.name.replace(' 대체공휴일', ' 대체')
+  // 좁은 주 단위 칸용: 3글자 이내로
+  if (h.type === 'substitute') return '대체'
+  return h.name.replace(/ (전날|다음날)$/, '').slice(0, 3)
+}
+
+function stripAria(d: Day, isLeave: boolean) {
+  return `${labelOf(d)} ${isLeave ? '연차' : d.holiday ? d.holiday.name : d.weekend ? '주말' : '근무일'}`
+}
+
 function DateStrip({ days, streak }: { days: Day[]; streak: Streak }) {
   const from = Math.max(0, streak.start - 1)
   const to = Math.min(days.length - 1, streak.end + 1)
@@ -323,36 +337,96 @@ function DateStrip({ days, streak }: { days: Day[]; streak: Streak }) {
   const firstIn = streak.start - from
   const n = cells.length
   return (
-    <div className="mt-7 overflow-x-auto pb-2">
-      <div className="relative w-max" role="list" aria-label="연휴 날짜">
-        {/* 연휴 구간 위로 붙인 테이프 */}
-        <div
-          aria-hidden
-          className="tape tape-press absolute top-[38%] h-[30%]"
-          style={{ left: `${(firstIn / n) * 100}%`, width: `${(streak.length / n) * 100}%` }}
-        />
-        <div className="relative flex">
-          {cells.map((d) => {
-            const inside = d.index >= streak.start && d.index <= streak.end
-            const isLeave = leaveSet.has(d.index)
-            return (
-              <div
-                role="listitem"
-                key={d.iso}
-                className={`flex w-14 flex-col items-center border-l border-rule py-2 first:border-l-0 sm:w-16 ${inside ? '' : 'opacity-35'}`}
-                aria-label={`${labelOf(d)} ${isLeave ? '연차' : d.holiday ? d.holiday.name : d.weekend ? '주말' : '근무일'}`}
-              >
-                <span className={`text-xs ${dayColor(d)}`}>{d.date === 1 || d.index === from ? `${d.month}월` : ' '}</span>
-                <span className={`num text-3xl font-bold leading-tight sm:text-4xl ${dayColor(d)}`}>{d.date}</span>
-                <span className={`text-sm ${dayColor(d)}`}>{DOW_KO[d.dow]}</span>
-                <span className="mt-1 h-4 max-w-full truncate px-0.5 text-[11px] text-ink-soft">
-                  {isLeave ? <b className="text-ink">연차</b> : d.holiday ? d.holiday.name.replace(' 대체공휴일', ' 대체') : ''}
-                </span>
-              </div>
-            )
-          })}
+    <>
+      {/* 넓은 화면: 한 줄 띠 */}
+      <div className="mt-7 hidden overflow-x-auto pb-2 lg:block">
+        <div className="relative w-max" role="list" aria-label="연휴 날짜">
+          {/* 연휴 구간 위로 붙인 테이프 */}
+          <div
+            aria-hidden
+            className="tape tape-press absolute top-[38%] h-[30%]"
+            style={{ left: `${(firstIn / n) * 100}%`, width: `${(streak.length / n) * 100}%` }}
+          />
+          <div className="relative flex">
+            {cells.map((d) => {
+              const inside = d.index >= streak.start && d.index <= streak.end
+              const isLeave = leaveSet.has(d.index)
+              return (
+                <div
+                  role="listitem"
+                  key={d.iso}
+                  data-strip-cell={inside ? 'in' : 'edge'}
+                  className={`flex w-14 flex-col items-center border-l border-rule py-2 first:border-l-0 xl:w-16 ${inside ? '' : 'opacity-35'}`}
+                  aria-label={stripAria(d, isLeave)}
+                >
+                  <span className={`text-xs ${dayColor(d)}`}>{d.date === 1 || d.index === from ? `${d.month}월` : '\u00a0'}</span>
+                  <span className={`num text-4xl font-bold leading-tight ${dayColor(d)}`}>{d.date}</span>
+                  <span className={`text-sm ${dayColor(d)}`}>{DOW_KO[d.dow]}</span>
+                  <span className="mt-1 h-4 max-w-full truncate px-0.5 text-[11px] text-ink-soft">{stripLabel(d, isLeave, false)}</span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
+      <WeekStrip days={days} streak={streak} from={from} to={to} leaveSet={leaveSet} />
+    </>
+  )
+}
+
+/** 좁은 화면: 일~토 7열 주 단위로 접고, 테이프를 줄마다 이어 붙인다 */
+function WeekStrip({ days, streak, from, to, leaveSet }: { days: Day[]; streak: Streak; from: number; to: number; leaveSet: Set<number> }) {
+  const firstRow = from - days[from].dow // 해당 주 일요일(연도 밖이면 음수)
+  const lastRow = to + (6 - days[to].dow)
+  const weeks: number[][] = []
+  for (let w = firstRow; w <= lastRow; w += 7) weeks.push(Array.from({ length: 7 }, (_, i) => w + i))
+  return (
+    <div className="mt-6 lg:hidden" role="list" aria-label="연휴 날짜">
+      <div className="grid grid-cols-7 border-b border-rule pb-1 text-center text-xs" aria-hidden>
+        {DOW_KO.map((w, i) => (
+          <span key={w} className={i === 0 ? 'text-hol' : i === 6 ? 'text-sat' : 'text-ink-soft'}>
+            {w}
+          </span>
+        ))}
+      </div>
+      {weeks.map((week) => {
+        const segStart = Math.max(week[0], streak.start)
+        const segEnd = Math.min(week[6], streak.end)
+        const hasSeg = segStart <= segEnd
+        return (
+          <div key={week[0]} className="relative border-b border-rule">
+            {hasSeg && (
+              <div
+                aria-hidden
+                data-week-tape
+                className="tape tape-press absolute top-[30%] h-[34%]"
+                style={{ left: `${((segStart - week[0]) / 7) * 100}%`, width: `${((segEnd - segStart + 1) / 7) * 100}%` }}
+              />
+            )}
+            <div className="relative grid grid-cols-7">
+              {week.map((i) => {
+                if (i < from || i > to) return <span key={i} aria-hidden />
+                const d = days[i]
+                const inside = i >= streak.start && i <= streak.end
+                const isLeave = leaveSet.has(i)
+                return (
+                  <div
+                    role="listitem"
+                    key={d.iso}
+                    data-strip-cell={inside ? 'in' : 'edge'}
+                    className={`flex min-w-0 flex-col items-center py-1.5 ${inside ? '' : 'opacity-35'}`}
+                    aria-label={stripAria(d, isLeave)}
+                  >
+                    <span className={`h-4 text-[11px] leading-4 ${dayColor(d)}`}>{d.date === 1 || i === from ? `${d.month}월` : ''}</span>
+                    <span className={`num text-[20px] font-bold leading-tight min-[360px]:text-2xl sm:text-3xl ${dayColor(d)}`}>{d.date}</span>
+                    <span className="mt-0.5 h-4 max-w-full overflow-hidden whitespace-nowrap text-[11px] leading-4 text-ink-soft">{stripLabel(d, isLeave, true)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
