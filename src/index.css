@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sky: #dce9f1;
+  --color-sky-deep: #c4d8e4;
+  --color-paper: #ffffff;
+  --color-ink: #1e2a44;
+  --color-ink-soft: #56627c;
+  --color-rule: #c9d6e0;
+  --color-hol: #d9342b;
+  --color-sat: #2b5cc8;
+  --color-tape: #ffd23f;
+  --color-tape-pale: #fff0b0;
+  --font-display: "Black Han Sans", "Gowun Dodum", sans-serif;
+  --font-body: "Gowun Dodum", system-ui, sans-serif;
+  --font-num: "Bricolage Grotesque", "Gowun Dodum", sans-serif;
+}
+
+html {
+  background: var(--color-sky);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--color-sat);
+  outline-offset: 2px;
+}
+
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 노란 마스킹테이프: 양 끝을 톱니처럼 찢은 모양 */
+.tape {
+  background: var(--color-tape);
+  clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 18%, calc(100% - 4px) 36%, 100% 54%, calc(100% - 5px) 72%, 100% 88%, calc(100% - 3px) 100%, 4px 100%, 0 84%, 5px 66%, 0 48%, 4px 30%, 0 14%);
+  opacity: 0.92;
+}
+
+@keyframes tape-press {
+  from { transform: scaleX(0.04) rotate(-1.2deg); }
+  to { transform: scaleX(1) rotate(-1.2deg); }
+}
+
+.tape-press {
+  transform-origin: left center;
+  transform: rotate(-1.2deg);
+  animation: tape-press 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 탁상달력 스프링 링 */
+.rings {
+  background-image: radial-gradient(circle at center, var(--color-sky) 0 5px, transparent 5.5px);
+  background-size: 28px 14px;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-press {
+    animation: none;
+  }
+  * {
+    transition: none !important;
+  }
+}
