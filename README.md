@@ -10,7 +10,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?logo=tailwindcss&logoColor=white)
 ![No server](https://img.shields.io/badge/서버-없음-FFD23F)
 
-### 🔗 라이브 데모: LIVE_URL
+### 🔗 라이브 데모: [https://holiday-bridge-gold.vercel.app](https://holiday-bridge-gold.vercel.app)
 
 ## 주요 기능
 
